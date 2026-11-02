@@ -1,4 +1,4 @@
-# pinshuai-Image-Template
+# pinshuai-image-template
 
 轮播图批量模板库。每个模板把一套参考轮播拆成固定文字和可变点，存在 `templates/<模板名>/carousel.json`。脚本给每套、每张画面写一条提示词，场景、机位、景别等可变点的取值由脚本定好并在各套之间轮换，不靠模型自己挑。同时写出可以直接交给 [pinshuai-batch-image](https://github.com/Kangaroochan/pinshuai-batch-image) 的 `jobs.json`，一次出完全部套数。
 
