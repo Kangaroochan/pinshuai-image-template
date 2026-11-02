@@ -7,18 +7,19 @@
 尽量多处不同。shared 里的可变点（质感、配色、主打款等）每套抽一次，正文引用了它的
 画面共用同一个取值，一套轮播看起来是同一个人拍的、讲的是同一件事。
 
-输出到一个新文件夹（不覆盖已有内容）：
-    提示词/第01套-1-下雪开场-提示词.txt …… 每条提示词，UTF-8，内容就是要提交的全文
-    参考图/                                出图要带的产品图（--screenshot 时还有整张截图）
-    jobs.json                              全部套数，给 pinshuai-batch-image 的 render.py 一次跑完
-    抽取明细.csv                           每条每个可变点取了什么、是不是原图做法
-    batch.json                             深度、种子、各画面变了几处、实际最小差异
+-o 是这次生成的出图文件夹（必须是新的或空的，不覆盖已有内容）。它的第一层留给
+pinshuai-batch-image 出的图片，这里写的文件全部放在它的 other/ 子文件夹：
+    other/提示词/第01套-1-下雪开场-提示词.txt …… 每条提示词，UTF-8，内容就是要提交的全文
+    other/参考图/                                出图要带的产品图（--screenshot 时还有整张截图）
+    other/jobs.json                              全部套数，给 render.py 一次跑完，图片会存在出图文件夹第一层
+    other/抽取明细.csv                           每条每个可变点取了什么、是不是原图做法
+    other/batch.json                             深度、种子、各画面变了几处、实际最小差异
 
 用法：
     python make_batch.py --list                                    # 有哪些模板
     python make_batch.py --template 圣诞珍珠画02 --sets 10          # 默认深度 10
     python make_batch.py --template 圣诞珍珠画01 --sets 20 --depth 7 --seed 42
-    python make_batch.py --template 圣诞珍珠画02 --sets 5 --slides 3 4 -o D:/出图任务/圣诞02
+    python make_batch.py --template 圣诞珍珠画02 --sets 5 --slides 3 4 -o D:/素材/圣诞02/圣诞02-1102
     python make_batch.py --template D:/素材/模板/carousel.json --sets 5   # 复制出来的模板写路径
     python make_batch.py --template 圣诞珍珠画01 --check            # 只检查模板，1～10 档逐档验证
 """
@@ -534,7 +535,8 @@ def main():
     ap.add_argument("--products", nargs="+", help="在款式池中点名：刚好每套款数则固定，多于则仅在点名款之间均衡轮换")
     ap.add_argument("--template", help="模板名（--list 列出），或 carousel.json 的路径")
     ap.add_argument("--list", action="store_true", help="列出 templates/ 下的模板")
-    ap.add_argument("-o", "--out", help="输出文件夹，默认 <当前目录>/<模板名>-<时间>-深度N-M套")
+    ap.add_argument("-o", "--out", help="出图文件夹（建在参考图所在文件夹里），文件写进它的 other/；"
+                                         "默认 <当前目录>/<模板名>-<时间>-深度N-M套")
     ap.add_argument("--max-seconds", type=float, default=30, help="每张画面每个差异要求最多试多久")
     ap.add_argument("--check", action="store_true", help="只检查模板，不写文件")
     args = ap.parse_args()
@@ -576,6 +578,7 @@ def main():
         Path.cwd() / f"{tpl.get('name', 'batch')}-{stamp}-深度{args.depth}-{args.sets}套"
     if out.exists() and any(out.iterdir()):
         sys.exit(f"[错误] {out} 已经有内容，换一个 -o，不覆盖")
+    gen_dir, out = out, out / "other"  # 出图文件夹第一层只放图片，这次生成的其他文件都进 other/
 
     shared_rng = random.Random(f"{seed}|shared")
     shared = deal_shared(tpl, args.sets, args.depth, shared_rng)
@@ -668,7 +671,7 @@ def main():
                                          for i, row in enumerate(products["rows"])]})
     (out / "batch.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    print(f"深度 {args.depth}，{args.sets} 套，种子 {seed} → {out}")
+    print(f"深度 {args.depth}，{args.sets} 套，种子 {seed} → {gen_dir}（文件在 other/，图片会出在这一层）")
     for r in results:
         note = "" if r["min_diff_used"] == r["min_diff_target"] else \
             f"（要求 {r['min_diff_target']} 处凑不够，降到 {r['min_diff_used']} 处）"

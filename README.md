@@ -31,19 +31,19 @@ git clone https://github.com/Kangaroochan/pinshuai-image-template.git "$env:USER
 
 ```powershell
 python scripts/make_batch.py --list
-python scripts/make_batch.py --template 圣诞珍珠画02 --sets 10 --depth 10 -o D:/出图任务/圣诞02
+python scripts/make_batch.py --template 圣诞珍珠画02 --sets 10 --depth 10 -o D:/素材/圣诞02/圣诞02-1102
 python scripts/make_batch.py --template 圣诞珍珠画01 --check
 ```
 
-`--template` 写模板名，或写复制出来的模板的 `carousel.json` 路径。
+`--template` 写模板名，或写复制出来的模板的 `carousel.json` 路径。`-o` 是这次的出图文件夹，建在参考图所在的文件夹里；脚本把提示词、jobs.json 等都写进它的 `other/`，pinshuai-batch-image 出的图放在第一层。
 
 ## 产品款式池
 
 用户提供造型一致或相似、图案不同的多款产品时，可在模板配置 `product_pool`（`per_set`、`common_description`、`items`；每款有 `name/ref/description`）。每套从池中不重复抽取、均衡轮换；在用户提供的款式间轮换不算换产品。无款式池时保持原有随机结果。完整字段与占位符见 `SKILL.md` 的"可选产品款式池"。
 
 ```powershell
-python scripts/make_batch.py --template D:/素材/carousel.json --sets 10 --seed 456084 -o D:/出图任务/轮换
-python scripts/make_batch.py --template D:/素材/carousel.json --sets 1 --products 雪人 姜饼人 -o D:/出图任务/指定
+python scripts/make_batch.py --template D:/素材/carousel.json --sets 10 --seed 456084 -o D:/素材/轮换/轮换-1102
+python scripts/make_batch.py --template D:/素材/carousel.json --sets 1 --products 雪人 姜饼人 -o D:/素材/指定/指定-1102
 ```
 
 指定款数等于每套款数时固定，多于时只在点名款中轮换；未知、重复或不足会报错。产品随机流独立，不改变场景、机位等抽取。
