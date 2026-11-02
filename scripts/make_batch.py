@@ -1,23 +1,26 @@
 #!/usr/bin/env python3
 """
-按 template/carousel.json 给每套轮播的每张画面写一条选项已经定好的提示词。
+按 templates/<模板名>/carousel.json 给每套轮播的每张画面写一条选项已经定好的提示词。
 
 模型在一条提示词里看到"例如 A、B、C"时几乎总挑同一个，所以这里由脚本替它选：
 每个可变点每条只写一个具体取值，取值在各套之间均衡轮换，同一张画面任意两套之间
-尽量多处不同。质感和配色每套抽一次，三张共用，一套轮播看起来是同一个人拍的。
+尽量多处不同。shared 里的可变点（质感、配色、主打款等）每套抽一次，正文引用了它的
+画面共用同一个取值，一套轮播看起来是同一个人拍的、讲的是同一件事。
 
 输出到一个新文件夹（不覆盖已有内容）：
-    提示词/第01套-1-四宫格-提示词.txt ……   每条提示词，UTF-8，内容就是要提交的全文
+    提示词/第01套-1-下雪开场-提示词.txt …… 每条提示词，UTF-8，内容就是要提交的全文
     参考图/                                出图要带的产品图（--screenshot 时还有整张截图）
     jobs.json                              全部套数，给 pinshuai-batch-image 的 render.py 一次跑完
     抽取明细.csv                           每条每个可变点取了什么、是不是原图做法
     batch.json                             深度、种子、各画面变了几处、实际最小差异
 
 用法：
-    python make_batch.py --sets 10                    # 默认深度 10
-    python make_batch.py --sets 20 --depth 7 --seed 42
-    python make_batch.py --sets 5 --slides 2 3 -o D:/出图任务/圣诞01
-    python make_batch.py --check                      # 只检查模板，1～10 档逐档验证
+    python make_batch.py --list                                    # 有哪些模板
+    python make_batch.py --template 圣诞珍珠画02 --sets 10          # 默认深度 10
+    python make_batch.py --template 圣诞珍珠画01 --sets 20 --depth 7 --seed 42
+    python make_batch.py --template 圣诞珍珠画02 --sets 5 --slides 3 4 -o D:/出图任务/圣诞02
+    python make_batch.py --template D:/素材/模板/carousel.json --sets 5   # 复制出来的模板写路径
+    python make_batch.py --template 圣诞珍珠画01 --check            # 只检查模板，1～10 档逐档验证
 """
 import argparse
 import csv
@@ -37,12 +40,41 @@ sys.path.insert(0, str(HERE))
 import sample_prompts as sp  # noqa: E402  抽取引擎：均衡取值 + 任意两条至少 N 处不同
 
 SKILL_DIR = HERE.parent
-DEFAULT_TEMPLATE = SKILL_DIR / "template" / "carousel.json"
+SKILL_NAME = SKILL_DIR.name
+TEMPLATES_DIR = SKILL_DIR / "templates"
 SIZE = re.compile(r"^\d+x\d+$")
 
 
 class TemplateError(Exception):
     pass
+
+
+def installed_templates():
+    return sorted(p.parent.name for p in TEMPLATES_DIR.glob("*/carousel.json"))
+
+
+def resolve_template(arg):
+    """--template 可以写模板名（templates/ 下的文件夹名），也可以写 carousel.json 或它所在文件夹的路径。"""
+    if not arg:
+        sys.exit("[错误] 用 --template 写模板名，可选：" + "、".join(installed_templates()))
+    named = TEMPLATES_DIR / arg / "carousel.json"
+    if named.is_file():
+        return named.resolve()
+    path = Path(arg)
+    if path.is_dir():
+        path = path / "carousel.json"
+    if path.is_file():
+        return path.resolve()
+    sys.exit(f"[错误] 找不到模板「{arg}」，可选：" + "、".join(installed_templates()) + "；或者写 carousel.json 的路径")
+
+
+def list_templates():
+    for name in installed_templates():
+        tpl = json.loads((TEMPLATES_DIR / name / "carousel.json").read_text(encoding="utf-8-sig"))
+        slides = "、".join(s["id"] for s in tpl["slides"])
+        pool = tpl.get("product_pool")
+        extra = f"；款式池 {len(pool['items'])} 款、每套 {pool['per_set']} 款" if pool else ""
+        print(f"{name}：{len(tpl['slides'])} 张（{slides}）{extra}")
 
 
 def text(t):
@@ -62,6 +94,12 @@ def options(cfg, depth):
 
 def sentinel(name):
     return f"\x00{name}\x00"
+
+
+def shared_used(tpl, slide):
+    """这张画面正文里引用了哪些 shared 可变点；没引用的不进这张的明细和差异统计。"""
+    used = set(sp.PH.findall(text(slide["template"])))
+    return [n for n in tpl.get("shared", {}) if n in used]
 
 
 def product_names(tpl):
@@ -291,7 +329,7 @@ def sample(raw, sets, target, seed, label, seconds):
 
 
 def deal_shared(tpl, sets, depth, rng):
-    """质感、配色每套一个取值，均衡轮换。"""
+    """shared 里每个可变点每套一个取值，均衡轮换（一轮用完全部选项才重复）。"""
     out = {}
     for name, cfg in tpl.get("shared", {}).items():
         opts = options(cfg, depth)
@@ -369,6 +407,9 @@ def validate(tpl, tpl_dir):
 
     for name, cfg in tpl.get("shared", {}).items():
         check_slot("shared", name, cfg)
+    unused = shared - {n for slide in tpl["slides"] for n in shared_used(tpl, slide)}
+    if unused:
+        errors.append(f"shared 里这些可变点没有任何画面正文用到：{sorted(unused)}")
     for slide in tpl["slides"]:
         sid = slide.get("id", "?")
         if sid in ids:
@@ -446,8 +487,11 @@ def run_check(tpl, tpl_dir):
             except TemplateError as e:
                 sys.exit(f"[错误] 深度 {depth}，{slide['id']}：{e}")
         print(f"{depth:>4}  " + "  ".join(f"{c:>{len(s['id']) + 6}}" for c, s in zip(cells, tpl["slides"])))
+    names = list(tpl.get("shared", {}))
     shared = sum(len(options(c, 10)) > 1 for c in tpl.get("shared", {}).values())
-    print(f"模板检查通过。另有 {len(tpl.get('shared', {}))} 个每套共用的可变点（质感、配色），10 档时 {shared} 个会变。")
+    print(f"模板检查通过。另有 {len(names)} 个每套共用的可变点（{'、'.join(names)}），10 档时 {shared} 个会变。")
+    for slide in tpl["slides"]:
+        print(f"  {slide['id']} 用到的共用可变点：{'、'.join(shared_used(tpl, slide)) or '无'}")
 
 
 def csv_rows(set_no, slide_id, prompt_name, spec, row, fixed, originals, groups_cfg):
@@ -479,22 +523,25 @@ def csv_rows(set_no, slide_id, prompt_name, spec, row, fixed, originals, groups_
 def main():
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8")
-    ap = argparse.ArgumentParser(description="按三张轮播模板批量写提示词")
+    ap = argparse.ArgumentParser(description="按轮播模板批量写提示词")
     ap.add_argument("--sets", type=int, help="出几套轮播（每套每张画面一条提示词）")
     ap.add_argument("--depth", type=int, default=10, help="重构深度 1～10，默认 10")
-    ap.add_argument("--slides", nargs="+", help="只要某几张画面，写 id 或编号，比如 2 3")
+    ap.add_argument("--slides", nargs="+", help="只要某几张画面，写 id 或编号，比如 3 4")
     ap.add_argument("--seed", type=int, help="随机种子，同模板同种子结果可复现；不写就随机")
     ap.add_argument("--min-diff", type=int, help="同一张画面任意两套至少几处不同；默认是会变的可变点数的一半")
     ap.add_argument("--screenshot", action="store_true", help="另带整张截图做构图参考，只允许 1～6 档")
     ap.add_argument("--model", help="写进 jobs 文件的模型名，不写就用 render.py 的默认")
     ap.add_argument("--products", nargs="+", help="在款式池中点名：刚好每套款数则固定，多于则仅在点名款之间均衡轮换")
-    ap.add_argument("--template", default=str(DEFAULT_TEMPLATE))
-    ap.add_argument("-o", "--out", help="输出文件夹，默认 <当前目录>/圣诞珍珠画01-<时间>-深度N-M套")
+    ap.add_argument("--template", help="模板名（--list 列出），或 carousel.json 的路径")
+    ap.add_argument("--list", action="store_true", help="列出 templates/ 下的模板")
+    ap.add_argument("-o", "--out", help="输出文件夹，默认 <当前目录>/<模板名>-<时间>-深度N-M套")
     ap.add_argument("--max-seconds", type=float, default=30, help="每张画面每个差异要求最多试多久")
     ap.add_argument("--check", action="store_true", help="只检查模板，不写文件")
     args = ap.parse_args()
 
-    tpl_path = Path(args.template).resolve()
+    if args.list:
+        return list_templates()
+    tpl_path = resolve_template(args.template)
     tpl_bytes = tpl_path.read_bytes()
     tpl = json.loads(tpl_bytes.decode("utf-8-sig"))
     tpl_dir = tpl_path.parent
@@ -553,10 +600,11 @@ def main():
                 shutil.copy2(tpl_dir / r, dst)
             ref_paths.append(f"参考图/{dst.name}")
         dims = spec.dim_names()
+        used_shared = shared_used(tpl, slide)
         vectors = []
         for i, row in enumerate(rows[:args.sets]):
             set_label = f"第{i + 1:0{width}d}套"
-            sv = {n: shared[n][i] for n in shared}
+            sv = {n: shared[n][i] for n in used_shared}
             pv = product_values(tpl, products["rows"][i]) if products and slide.get("use_products") else None
             job_refs = ref_paths
             if pv:
@@ -582,19 +630,20 @@ def main():
                 table = [[*r[:4], resolved(r[4]), *r[5:]]
                          if r[0] == set_label and r[1] == slide["id"] else r for r in table]
                 table.append([set_label, slide["id"], fname, "产品款式", "、".join(p["name"] for p in products["rows"][i]), products["source"], ""])
-            for n in shared:
+            for n in used_shared:
                 orig = tpl["shared"][n].get("original")
                 table.append([set_label, slide["id"], fname, n, sv[n], "每套共用",
                               "" if orig is None else ("是" if sv[n] == orig else "否")])
-            vectors.append([row["dims"][d] for d in dims] + [sv[n] for n in shared])
-        n_shared = sum(len(set(shared[n])) > 1 for n in shared)
+            vectors.append([row["dims"][d] for d in dims] + [sv[n] for n in used_shared])
+        n_shared = sum(len(set(shared[n])) > 1 for n in used_shared)
         results.append({"id": slide["id"], "varied": n_var, "fixed": fixed_names(spec, fixed), "min_diff_target": target,
                         "min_diff_used": used_md, "min_diff_actual": min_pairwise(vectors),
-                        "varied_with_shared": n_var + n_shared, "refs": ref_paths,
+                        "shared": used_shared, "varied_with_shared": n_var + n_shared, "refs": ref_paths,
                         **({"refs_per_job": tpl["product_pool"]["per_set"]} if products and slide.get("use_products") else {})})
 
     def write_jobs(fname, jobs):
-        spec = {"prompt_skill": tpl.get("name", "圣诞珍珠画01")}
+        # 出图 skill 同步经验时，按 prompt_skill + template 找到 templates/<template>/lessons.md
+        spec = {"prompt_skill": SKILL_NAME, "template": tpl.get("name", tpl_dir.name)}
         if args.model:
             spec["model"] = args.model
         spec["jobs"] = jobs
@@ -609,7 +658,7 @@ def main():
     meta = {"template": str(tpl_path), "template_sha256": hashlib.sha256(tpl_bytes).hexdigest(),
             "created": datetime.now().isoformat(timespec="seconds"), "depth": args.depth, "sets": args.sets,
             "seed": seed, "screenshot": args.screenshot, "slides": results,
-            "jobs": "jobs.json"}
+            "shared_by_set": shared, "jobs": "jobs.json"}
     if products:
         meta.update({"product_pool": tpl["product_pool"], "products_requested": args.products,
                      "product_counts": products["counts"], "repeated_combos": products["repeated_combos"],
@@ -624,14 +673,18 @@ def main():
         note = "" if r["min_diff_used"] == r["min_diff_target"] else \
             f"（要求 {r['min_diff_target']} 处凑不够，降到 {r['min_diff_used']} 处）"
         actual = "-" if r["min_diff_actual"] is None else r["min_diff_actual"]
-        print(f"  {r['id']}：会变 {r['varied']} 处 + 每套共用 {len(shared)} 处，固定 {len(r['fixed'])} 处；"
+        print(f"  {r['id']}：会变 {r['varied']} 处 + 每套共用 {len(r['shared'])} 处，固定 {len(r['fixed'])} 处；"
               f"任意两套至少 {actual} 处不同{note}；带图 {r.get('refs_per_job', len(r['refs']))} 张")
+    for n, cfg in tpl.get("shared", {}).items():
+        # 没有原图做法的共用项是纯轮换（比如主打款），报一下各取值出现几次
+        if cfg.get("original") is None and any(n in shared_used(tpl, s) for s in slides):
+            print(f"  {n}出现次数：" + "，".join(f"{v} {shared[n].count(v)}次" for v in cfg["pool"]))
     if products:
         print("  款式出现次数：" + "，".join(f"{n} {c}次" for n, c in products["counts"].items()))
         print(f"  重复出现的款式组合：{products['repeated_combos']} 套")
     print(f"  提示词 {len(jobs)} 条，jobs.json {len(jobs)} 张")
     if args.screenshot:
-        print("[提醒] 带了整张截图：L008 记录过截图里的轮播圆点会被画进图里，出图后要检查")
+        print("[提醒] 带了整张截图：圣诞珍珠画01 的 L008 记录过截图里的界面（搜索栏、轮播圆点或箭头）会被画进图里，出图后要检查")
 
 
 if __name__ == "__main__":
