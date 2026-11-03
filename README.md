@@ -11,6 +11,7 @@
 | `圣诞珍珠画01` | 圣诞老人和小鹿珠钻画挂饰三张轮播：1 开场四宫格 "10/10 Christmas activity"、2 和妈妈一起做 "Ornament Kit 🥹"、3 挂在树上 "that’s our December evenings sorted...🫶🏼"；可配款式池每套轮换 |
 | `圣诞珍珠画02` | 6枚一套珠钻画挂饰四张轮播：1 下雪开场、2 整套6个、3 自己做、4 挂上树 + "grab yours today 👇👇"；主打款每套轮换 |
 | `圣诞珍珠画03` | 自己做的挂饰挂在圣诞树上六张轮播：1 封面 "pearl ornaments i've made!!!"、2～5 一款一张（最爱款、单款特写、拿在手里、另一款）、6 结尾 "what else should i make!!!!"；产品不固定，每次用上传的产品图建款式池，每套 4 款、款位轮换 |
+| `圣诞珍珠画04` | 同一枚挂饰从空白底板到做好的三张手作教程轮播：1 第一步 "How to make pearl ornaments, step by step!"、2 贴珠中 "I'm making the ___ one."、3 做好了 "And voilà! Look how cute!"；产品不固定，每次用上传的产品图建款式池，每套 1 款 |
 
 每个模板文件夹里有 `carousel.json`、`参考图/`、`产品图/`、`说明.md`（模板专属规则）和 `lessons.md`（这个模板的出图经验）。
 
