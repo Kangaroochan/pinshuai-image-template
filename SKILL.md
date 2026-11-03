@@ -1,6 +1,6 @@
 ---
 name: pinshuai-image-template
-description: 轮播图批量模板库。脚本按模板给每套每张画面写一条选项已定的提示词，和交给 pinshuai-batch-image 出图的 jobs 文件。现有模板：圣诞珍珠画01（圣诞老人和小鹿三张轮播，1 四宫格"10/10 Christmas activity"、2 做钻石画、3 挂在树上）；圣诞珍珠画02（6枚一套四张轮播，1 下雪开场、2 整套6个、3 自己做、4 挂上树）；圣诞珍珠画03（挂在树上六张轮播，1 封面"pearl ornaments i've made!!!"、2～5 一款一张、6 结尾）；圣诞珍珠画04（三张教程轮播，1 第一步"How to make…step by step!"、2 贴珠中、3 做好了"And voilà!"）；圣诞珍珠画05（前后对比两张，1 乱摊子"The mess:"、2 成品"The result:"）；圣诞珍珠画06（拿在腿上的四张，1 封面"pearl ornaments I made this weekend >>>"、2～4 一款一张"I'm obsessed."）；圣诞珍珠画07（四张，1 下雪开场"PARENTSSSS make sure to…"、2 贴珠中、3 做好了、4 挂起来"see today’s price"）；圣诞珍珠画08（三张，1 挂在树上"Made these myself…"、2 一起做"make your own ornaments!"、3 单枚特写"Grab one below!"）；圣诞珍珠画09（三张，1 大字帖子截图"you get 12 different…in one kit??"、2 桌上贴珠"sooo cute"、3 挂在树上"sorry about the price tho..."）；圣诞珍珠画10（两张，1 路边垂头"i don't need any presents"、2 礼盒成品"make her smile"）。03～10 每次用上传的产品图建款式池。支持 1～10 重构深度（默认 10）。用户说"按圣诞珍珠画01～10出 N 套""出几套分步骤教程/乱摊子对比/拿在腿上那套""用某个模板出一批""批量出这套轮播"，上传的就是某个模板的参考图，要列出、新增或修改模板，或对出图结果给反馈、要求复盘时使用。参考图没有对应模板、只做一次提示词多样化时用 pinshuai-prompt-diversify。
+description: 轮播图批量模板库。脚本按模板给每套每张画面写一条选项已定的提示词，和交给 pinshuai-batch-image 出图的 jobs 文件。现有模板名是"圣诞珍珠画"加编号，括号里是张数和认得出的文案：01（3张，四宫格"10/10 Christmas activity"）、02（4张，下雪开场、整套6个）、03（6张，"pearl ornaments i've made!!!"）、04（3张教程，"How to make…step by step!"）、05（2张，"The mess:""The result:"）、06（4张，"pearl ornaments I made this weekend >>>"）、07（4张，"PARENTSSSS make sure to…"）、08（3张，"Made these myself…"）、09（3张，帖子截图"you get 12 different…in one kit??"）、10（2张，"i don't need any presents""make her smile"）、11（2张，深色帖子截图"A reminder to any boyfriends…"、整套陈列"She wants this for Christmas!"）、12（2张，两个窗口梗图"Getting her a gift card""Making her pearl ornaments"、木架挂满"Do it for her"）、13（4张，门口快递"I finally found a Christmas craft…"、"Peel. Place. Hang."、收进箱子"Christmas box"）。03 起每次用上传的产品图建款式池。支持 1～10 重构深度（默认 10）。用户说"按圣诞珍珠画NN出 N 套""出几套分步骤教程/乱摊子对比/拿在腿上那套""用某个模板出一批""批量出这套轮播"，上传的就是某个模板的参考图，要列出、新增或修改模板，或对出图结果给反馈、要求复盘时使用。参考图没有对应模板、只做一次提示词多样化时用 pinshuai-prompt-diversify。
 ---
 
 # pinshuai-image-template：轮播批量模板
@@ -37,7 +37,7 @@ description: 轮播图批量模板库。脚本按模板给每套每张画面写�
 - 用户上传了某个模板的参考图，或说"这套图""这套四张"，对照各模板 `说明.md` 开头写的画面和文案认出是哪个模板，不用重新分析。
 - 认不出、或两个模板都说得通时，跑 `make_batch.py --list` 把模板列给用户选，不要猜。
 - 用户上传的参考图没有对应模板：只做一次的，改用 pinshuai-prompt-diversify；要以后反复出的，提议新增模板（见"新增模板"），用户同意后再做。
-- 圣诞珍珠画03～圣诞珍珠画10 不固定产品：每次都用用户上传的产品图，在模板副本里建款式池再生成，步骤见各自的 `说明.md`。用户没给产品图就先问，不拿模板里的示例款顶上；用户只上传了产品图、没说用哪个模板时，问用户用哪个。
+- 圣诞珍珠画03 及以后的模板都不固定产品：每次都用用户上传的产品图，在模板副本里建款式池再生成，步骤见各自的 `说明.md`。用户没给产品图就先问，不拿模板里的示例款顶上；用户只上传了产品图、没说用哪个模板时，问用户用哪个。
 - 用户要在已有模板上换一款或一套产品：在已配置的款式池里点名用 `--products`；池里没有的，产品描述和裁图都要换，属于改模板。只是这次换产品、不改原模板时，把模板文件夹复制到参考图所在文件夹（临时文件夹的图先复制到任务文件夹）的 `模板/` 改副本，再用 `--template <副本路径>`。模板副本给以后多次生成共用，不放进某一次的 `other/`。
 
 ## 输入

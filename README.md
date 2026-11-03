@@ -18,6 +18,9 @@
 | `圣诞珍珠画08` | 挂在树上、一起做、单枚特写的三张轮播：1 挂在树上 "Made these myself…" + "see today’s price ⬇️"、2 一起做 "make your own ornaments! 🥹🎄"（款位1贴了一半，其余几款做好放在桌上）、3 单枚特写 "Grab one below! 👇"；产品不固定，每次用上传的产品图建款式池，每套 4 款、款位轮换 |
 | `圣诞珍珠画09` | 帖子截图开场到挂在树上的三张轮播：1 帖子开场（只有大字的帖子截图 "you get 12 different Christmas Ornaments in one kit??"，没有产品，12 是套装款数，可改）、2 桌上贴珠 "and they’re sooo cute 🤩🤩"（款位1、2做好，其余几款贴了一半）、3 挂在树上 "sorry about the price tho..."（款位1、2）；产品不固定，每次用上传的产品图建款式池，每套 4 款、款位轮换 |
 | `圣诞珍珠画10` | 路边垂头开场到礼盒成品的两张轮播：1 路边开场（圣诞夜路边坐着、看不到脸的男人，"when it's almost Christmas and she says it's ok, i know money is tight i don't need any presents"，没有产品；原图是万圣节版，改成了圣诞版）、2 礼盒成品 "But it's up to me to make her smile🥰"（整套挂饰立在桌上，身后是包装盒）；产品不固定，每次用上传的产品图建款式池，每套 5 款；上传了包装盒照片就用照片，没上传就用文字描述原图的红色礼盒 |
+| `圣诞珍珠画11` | 深色帖子截图开场到整套陈列的两张轮播：1 帖子开场（深色模式、只有大字的帖子截图 "“A reminder to any boyfriends who are seeing this” ..."，没有产品，账号名、头像、时间和互动数各自轮换）、2 整套陈列 "She wants this for Christmas!"（白色笔刷贴纸标题，整套成品高低错开摆在礼物盒和木桩上）；产品不固定，每次用上传的产品图建款式池，默认一套摆上传的全部款 |
+| `圣诞珍珠画12` | 两个窗口梗图开场到木架挂满的两张轮播：1 两个窗口（扁平卡通梗图，左边窗口前挤满灰色小人 "Getting her / a gift card"，右边只有骑士 "Making her / pearl ornaments"，没有产品；原图是万圣节版，改成了圣诞版）、2 木架挂满 "Do it for her 🎄👇👉"（整套挂饰在木架上挂成几排）；产品不固定，每次用上传的产品图建款式池，每套挂上传款数和 12 取小的那么多款 |
+| `圣诞珍珠画13` | 门口快递开场到收进圣诞箱的四张轮播：1 门口快递（下雪的门廊上一个快递箱，"I finally found a Christmas craft we DON'T throw away after 😭🎄"，没有产品）、2 整套摊开 "It turns into 6 real ornaments…🥹"（6 是件数，跟 per_set 一起改）、3 揭膜贴珠 "Peel. Place. Hang. That’s literally it ✨"（款位1）、4 收进箱子 "These are going in our Christmas box…🥹" + "grab yours today👇👇"（手里是款位1）；产品不固定，每次用上传的产品图建款式池，每套 6 款、款位轮换 |
 
 每个模板文件夹里有 `carousel.json`、`参考图/`、`产品图/`、`说明.md`（模板专属规则）和 `lessons.md`（这个模板的出图经验）。
 
