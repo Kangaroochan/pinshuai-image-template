@@ -103,12 +103,27 @@ def shared_used(tpl, slide):
     return [n for n in tpl.get("shared", {}) if n in used]
 
 
-def product_names(tpl):
+def is_int(v):
+    return isinstance(v, int) and not isinstance(v, bool)
+
+
+def product_slots(tpl):
+    """款位个数：per_set，和各画面 use_products 列表里写到的最大款位，取大的。"""
     pool = tpl.get("product_pool")
-    if not isinstance(pool, dict):
+    count = pool.get("per_set", 0) if isinstance(pool, dict) else 0
+    count = count if is_int(count) and count > 0 else 0
+    for s in tpl.get("slides", []):
+        picks = s.get("use_products")
+        if isinstance(picks, list):
+            count = max([count] + [i for i in picks if is_int(i)])
+    return count
+
+
+def product_names(tpl):
+    if not isinstance(tpl.get("product_pool"), dict):
         return set()
-    count = pool.get("per_set", 0)
-    return {"产品"} | {f"款式{i}" for i in range(1, count + 1)} if isinstance(count, int) and not isinstance(count, bool) and count > 0 else {"产品"}
+    n = product_slots(tpl)
+    return {"产品"} | {f"款式{i}" for i in range(1, n + 1)} | {f"款式{i}英文" for i in range(1, n + 1)}
 
 
 def map_strings(value, fn):
@@ -121,9 +136,29 @@ def map_strings(value, fn):
     return value
 
 
-def product_values(tpl, items):
-    return {"产品": tpl["product_pool"]["common_description"] + "".join(p["description"] for p in items),
-            **{f"款式{i}": p["name"] for i, p in enumerate(items, 1)}}
+def slide_items(slide, row):
+    """这张画面出现哪几款：use_products 是 true 时是本套全部款；写成款位列表（比如 [2]）时只取这几个款位。
+    款位超过本套款数时从头循环，同一款只算一次。"""
+    picks = slide.get("use_products")
+    if picks is True:
+        return list(row)
+    out = []
+    for i in picks:
+        p = row[(i - 1) % len(row)]
+        if p not in out:
+            out.append(p)
+    return out
+
+
+def product_values(tpl, row, shown):
+    """{{产品}} = 共用描述 + 这张画面出现的各款描述；{{款式N}}、{{款式N英文}} = 本套第 N 个款位的款名。"""
+    vals = {"产品": tpl["product_pool"]["common_description"] + "".join(p["description"] for p in shown)}
+    for i in range(1, product_slots(tpl) + 1):
+        p = row[(i - 1) % len(row)]
+        vals[f"款式{i}"] = p["name"]
+        if "en" in p:
+            vals[f"款式{i}英文"] = p["en"]
+    return vals
 
 
 def deal_products(tpl, sets, seed, wanted=None):
@@ -162,9 +197,33 @@ def deal_products(tpl, sets, seed, wanted=None):
             break
     if best is None:
         raise last_error
-    return {"rows": best, "source": "用户指定" if wanted else "每套轮换", "requested": wanted,
-            "repeated_combos": best_repeats,
-            "counts": {p["name"]: sum(p in row for row in best) for p in items}}
+    # 有画面只拍某个款位时，款位决定这一款是不是主角，套内顺序也要轮换；用单独的随机流，不改变抽到哪几款
+    ordered = any(isinstance(s.get("use_products"), list) for s in tpl["slides"])
+    if ordered:
+        best = order_rows(best, random.Random(f"{seed}|product-order"))
+    out = {"rows": best, "source": "用户指定" if wanted else "每套轮换", "requested": wanted,
+           "repeated_combos": best_repeats,
+           "counts": {p["name"]: sum(p in row for row in best) for p in items}}
+    if ordered:
+        out["slot_counts"] = [{p["name"]: sum(row[i]["name"] == p["name"] for row in best) for p in items}
+                              for i in range(k)]
+    return out
+
+
+def order_rows(rows, rng):
+    """逐套排款位：每个款位优先放在这个款位出现次数最少的款，次数相同时随机。"""
+    seen = [{} for _ in range(len(rows[0]))]
+    out = []
+    for row in rows:
+        left, ordered = list(row), []
+        for i, counts in enumerate(seen):
+            low = min(counts.get(p["name"], 0) for p in left)
+            p = rng.choice([p for p in left if counts.get(p["name"], 0) == low])
+            left.remove(p)
+            ordered.append(p)
+            counts[p["name"]] = counts.get(p["name"], 0) + 1
+        out.append(ordered)
+    return out
 
 
 def deal_product_rows(eligible, k, sets, rng):
@@ -379,8 +438,14 @@ def validate(tpl, tpl_dir):
         if not isinstance(pool.get("common_description"), str) or not pool["common_description"].strip():
             errors.append("product_pool.common_description 不能为空")
         names, files = set(), set()
+        body = json.dumps(tpl["slides"], ensure_ascii=False)
+        need_en = sorted({m for m in sp.PH.findall(body) if re.fullmatch(r"款式\d+英文", m.strip())})
         for p in items:
             name, ref, desc = p.get("name"), p.get("ref"), p.get("description")
+            if "en" in p and (not isinstance(p["en"], str) or not p["en"].strip() or sp.PH.search(p["en"])):
+                errors.append(f"款式 {name} 的 en 要写成非空的英文款名，不含占位符")
+            elif need_en and "en" not in p:
+                errors.append(f"款式 {name} 缺少 en：画面里用到了 {'、'.join(need_en)}，每款都要写英文款名")
             if not isinstance(name, str) or not name.strip() or name in names:
                 errors.append(f"款名为空或重复：{name}")
             names.add(name)
@@ -440,6 +505,8 @@ def validate(tpl, tpl_dir):
         clash = (expected | {r for g in slide.get("groups", []) for r in g["roles"]}) & (shared | fixed_names)
         if clash:
             errors.append(f"{sid}：这些名字和 shared/fixed 重名：{sorted(clash)}")
+        if pool is None and isinstance(slide.get("use_products"), list):
+            errors.append(f"{sid}：use_products 写了款位列表，但模板没有 product_pool")
         used = set(sp.PH.findall(text(slide["template"])))
         if used - expected - shared - fixed_names - products:
             errors.append(f"{sid}：模板里有没定义的占位符 {sorted(used - expected - shared - fixed_names - products)}")
@@ -449,6 +516,11 @@ def validate(tpl, tpl_dir):
             unknown = all_used - expected - shared - fixed_names - products
             if unknown:
                 errors.append(f"{sid}：正文或选项里有没定义的占位符 {sorted(unknown)}")
+            picks = slide.get("use_products")
+            if picks is not None and not isinstance(picks, bool) and not (
+                    isinstance(picks, list) and picks and all(is_int(i) and i >= 1 for i in picks)
+                    and len(set(picks)) == len(picks)):
+                errors.append(f"{sid}：use_products 写 true，或写不重复的款位编号列表，比如 [2]")
             if slide.get("use_products") and slide.get("refs"):
                 errors.append(f"{sid}：use_products 画面不可另带固定 refs；只带本套抽到的裁图")
             if not slide.get("use_products") and all_used & products:
@@ -608,11 +680,12 @@ def main():
         for i, row in enumerate(rows[:args.sets]):
             set_label = f"第{i + 1:0{width}d}套"
             sv = {n: shared[n][i] for n in used_shared}
-            pv = product_values(tpl, products["rows"][i]) if products and slide.get("use_products") else None
+            shown = slide_items(slide, products["rows"][i]) if products and slide.get("use_products") else None
+            pv = product_values(tpl, products["rows"][i], shown) if shown else None
             job_refs = ref_paths
             if pv:
                 job_refs = []
-                for p in products["rows"][i]:
+                for p in shown:
                     dst = out / "参考图" / Path(p["ref"]).name
                     if not dst.exists():
                         shutil.copy2(tpl_dir / p["ref"], dst)
@@ -632,7 +705,7 @@ def main():
                     return value
                 table = [[*r[:4], resolved(r[4]), *r[5:]]
                          if r[0] == set_label and r[1] == slide["id"] else r for r in table]
-                table.append([set_label, slide["id"], fname, "产品款式", "、".join(p["name"] for p in products["rows"][i]), products["source"], ""])
+                table.append([set_label, slide["id"], fname, "产品款式", "、".join(p["name"] for p in shown), products["source"], ""])
             for n in used_shared:
                 orig = tpl["shared"][n].get("original")
                 table.append([set_label, slide["id"], fname, n, sv[n], "每套共用",
@@ -642,7 +715,8 @@ def main():
         results.append({"id": slide["id"], "varied": n_var, "fixed": fixed_names(spec, fixed), "min_diff_target": target,
                         "min_diff_used": used_md, "min_diff_actual": min_pairwise(vectors),
                         "shared": used_shared, "varied_with_shared": n_var + n_shared, "refs": ref_paths,
-                        **({"refs_per_job": tpl["product_pool"]["per_set"]} if products and slide.get("use_products") else {})})
+                        **({"refs_per_job": len(slide_items(slide, products["rows"][0]))}
+                           if products and slide.get("use_products") else {})})
 
     def write_jobs(fname, jobs):
         # 出图 skill 同步经验时，按 prompt_skill + template 找到 templates/<template>/lessons.md
@@ -669,6 +743,8 @@ def main():
                                           "products": [p["name"] for p in row],
                                           "refs": [f"参考图/{Path(p['ref']).name}" for p in row]}
                                          for i, row in enumerate(products["rows"])]})
+        if "slot_counts" in products:
+            meta["product_slot_counts"] = products["slot_counts"]
     (out / "batch.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     print(f"深度 {args.depth}，{args.sets} 套，种子 {seed} → {gen_dir}（文件在 other/，图片会出在这一层）")
@@ -685,6 +761,8 @@ def main():
     if products:
         print("  款式出现次数：" + "，".join(f"{n} {c}次" for n, c in products["counts"].items()))
         print(f"  重复出现的款式组合：{products['repeated_combos']} 套")
+        for i, counts in enumerate(products.get("slot_counts", []), 1):
+            print(f"  款位{i}出现次数：" + "，".join(f"{n} {c}次" for n, c in counts.items()))
     print(f"  提示词 {len(jobs)} 条，jobs.json {len(jobs)} 张")
     if args.screenshot:
         print("[提醒] 带了整张截图：圣诞珍珠画01 的 L008 记录过截图里的界面（搜索栏、轮播圆点或箭头）会被画进图里，出图后要检查")
