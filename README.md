@@ -15,6 +15,7 @@
 | `圣诞珍珠画05` | 做珠钻画前后对比两张轮播：1 乱摊子 "The mess:"（一桌材料和工具，没有产品）、2 成品 "The result:" 加这一款的 emoji；产品不固定，每次用上传的产品图建款式池，每套 1 款，emoji 跟着款式变 |
 | `圣诞珍珠画06` | 挂饰拿在腿上给镜头看的四张轮播：1 封面 "pearl ornaments I made this weekend >>>"、2 第一枚、3 更顺手、4 最爱 "I'm obsessed."；产品不固定，每次用上传的产品图建款式池，每套 3 款、款位轮换 |
 | `圣诞珍珠画07` | 下雪街头开场到挂起来的四张轮播：1 下雪开场 "PARENTSSSS make sure to grab…"（没有产品）、2 贴珠中 "…so relaxing. 🥹✨🎄"、3 做好了 "…cuter than I expected." 加这一款的 emoji、4 挂起来 "Made these myself…" + "see today’s price ⬇️"；产品不固定，每次用上传的产品图建款式池，每套 4 款、款位轮换，emoji 跟着款式变 |
+| `圣诞珍珠画08` | 挂在树上、一起做、单枚特写的三张轮播：1 挂在树上 "Made these myself…" + "see today’s price ⬇️"、2 一起做 "make your own ornaments! 🥹🎄"（款位1贴了一半，其余几款做好放在桌上）、3 单枚特写 "Grab one below! 👇"；产品不固定，每次用上传的产品图建款式池，每套 4 款、款位轮换 |
 
 每个模板文件夹里有 `carousel.json`、`参考图/`、`产品图/`、`说明.md`（模板专属规则）和 `lessons.md`（这个模板的出图经验）。
 
