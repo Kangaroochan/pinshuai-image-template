@@ -17,6 +17,7 @@
 | `圣诞珍珠画07` | 下雪街头开场到挂起来的四张轮播：1 下雪开场 "PARENTSSSS make sure to grab…"（没有产品）、2 贴珠中 "…so relaxing. 🥹✨🎄"、3 做好了 "…cuter than I expected." 加这一款的 emoji、4 挂起来 "Made these myself…" + "see today’s price ⬇️"；产品不固定，每次用上传的产品图建款式池，每套 4 款、款位轮换，emoji 跟着款式变 |
 | `圣诞珍珠画08` | 挂在树上、一起做、单枚特写的三张轮播：1 挂在树上 "Made these myself…" + "see today’s price ⬇️"、2 一起做 "make your own ornaments! 🥹🎄"（款位1贴了一半，其余几款做好放在桌上）、3 单枚特写 "Grab one below! 👇"；产品不固定，每次用上传的产品图建款式池，每套 4 款、款位轮换 |
 | `圣诞珍珠画09` | 帖子截图开场到挂在树上的三张轮播：1 帖子开场（只有大字的帖子截图 "you get 12 different Christmas Ornaments in one kit??"，没有产品，12 是套装款数，可改）、2 桌上贴珠 "and they’re sooo cute 🤩🤩"（款位1、2做好，其余几款贴了一半）、3 挂在树上 "sorry about the price tho..."（款位1、2）；产品不固定，每次用上传的产品图建款式池，每套 4 款、款位轮换 |
+| `圣诞珍珠画10` | 路边垂头开场到礼盒成品的两张轮播：1 路边开场（圣诞夜路边坐着、看不到脸的男人，"when it's almost Christmas and she says it's ok, i know money is tight i don't need any presents"，没有产品；原图是万圣节版，改成了圣诞版）、2 礼盒成品 "But it's up to me to make her smile🥰"（整套挂饰立在桌上，身后是包装盒）；产品不固定，每次用上传的产品图建款式池，每套 5 款；上传了包装盒照片就用照片，没上传就用文字描述原图的红色礼盒 |
 
 每个模板文件夹里有 `carousel.json`、`参考图/`、`产品图/`、`说明.md`（模板专属规则）和 `lessons.md`（这个模板的出图经验）。
 
@@ -55,7 +56,7 @@ python scripts/make_batch.py --template D:/素材/carousel.json --sets 1 --produ
 
 指定款数等于每套款数时固定，多于时只在点名款中轮换；未知、重复或不足会报错。产品随机流独立，不改变场景、机位等抽取。
 
-一张画面只拍其中一款时，`use_products` 写成款位列表（比如 `[2]`），这张只带这个款位的裁图和描述；款位顺序在各套之间轮换。字幕要写英文款名时每款加 `en`，正文用 `{{款式N英文}}`；字幕里的 emoji 要跟着款式变时每款加 `emoji` 和 `emoji_desc`，正文用 `{{款式Nemoji}}`、`{{款式Nemoji说明}}`。
+一张画面只拍其中一款时，`use_products` 写成款位列表（比如 `[2]`），这张只带这个款位的裁图和描述；款位顺序在各套之间轮换。产品画面另要带每套都一样的图（比如包装盒照片）时写进这张的 `refs`，排在本套裁图后面。字幕要写英文款名时每款加 `en`，正文用 `{{款式N英文}}`；字幕里的 emoji 要跟着款式变时每款加 `emoji` 和 `emoji_desc`，正文用 `{{款式Nemoji}}`、`{{款式Nemoji说明}}`。
 
 修复画面问题时用适用于全部选项的通用手部/受力/自然排列规则，不删选项、换安全场景或限制构图；改前改后的差异统计不能降低（2026-11-01 用户要求）。用户明确说不要的画面例外，直接从模板删掉。
 

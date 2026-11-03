@@ -529,8 +529,11 @@ def validate(tpl, tpl_dir):
                     isinstance(picks, list) and picks and all(is_int(i) and i >= 1 for i in picks)
                     and len(set(picks)) == len(picks)):
                 errors.append(f"{sid}：use_products 写 true，或写不重复的款位编号列表，比如 [2]")
-            if slide.get("use_products") and slide.get("refs"):
-                errors.append(f"{sid}：use_products 画面不可另带固定 refs；只带本套抽到的裁图")
+            if slide.get("use_products") and isinstance(pool.get("items"), list):
+                crops = {Path(p.get("ref") or "").name for p in pool["items"] if isinstance(p, dict)}
+                clash = sorted(Path(r).name for r in slide.get("refs", []) if Path(r).name in crops)
+                if clash:  # 固定 refs 排在裁图后面，文件名和裁图一样时复制会互相顶掉
+                    errors.append(f"{sid}：refs 和款式裁图的文件名重复：{clash}")
             if not slide.get("use_products") and all_used & products:
                 errors.append(f"{sid}：引用款式占位符时必须设置 use_products: true")
         if expected - used:
@@ -698,6 +701,7 @@ def main():
                     if not dst.exists():
                         shutil.copy2(tpl_dir / p["ref"], dst)
                     job_refs.append(f"参考图/{dst.name}")
+                job_refs += [f"参考图/{Path(r).name}" for r in slide.get("refs", [])]  # 固定 refs（比如包装盒照片）排在裁图后面
             prompt = render(spec, row, sv, pv)
             name = f"{set_label}-{slide['id']}"
             fname = f"{name}-提示词.txt"
@@ -723,7 +727,7 @@ def main():
         results.append({"id": slide["id"], "varied": n_var, "fixed": fixed_names(spec, fixed), "min_diff_target": target,
                         "min_diff_used": used_md, "min_diff_actual": min_pairwise(vectors),
                         "shared": used_shared, "varied_with_shared": n_var + n_shared, "refs": ref_paths,
-                        **({"refs_per_job": len(slide_items(slide, products["rows"][0]))}
+                        **({"refs_per_job": len(slide_items(slide, products["rows"][0])) + len(slide.get("refs", []))}
                            if products and slide.get("use_products") else {})})
 
     def write_jobs(fname, jobs):
