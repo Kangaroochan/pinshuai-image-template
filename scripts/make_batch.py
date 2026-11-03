@@ -119,11 +119,15 @@ def product_slots(tpl):
     return count
 
 
+# 款式的可选字段：占位符后缀 → (字段名, 说明)。正文写 {{款式N<后缀>}}，取本套第 N 个款位这一款的这个字段
+ITEM_FIELDS = {"英文": ("en", "英文款名"), "emoji": ("emoji", "emoji字符"), "emoji说明": ("emoji_desc", "emoji图案说明")}
+
+
 def product_names(tpl):
     if not isinstance(tpl.get("product_pool"), dict):
         return set()
     n = product_slots(tpl)
-    return {"产品"} | {f"款式{i}" for i in range(1, n + 1)} | {f"款式{i}英文" for i in range(1, n + 1)}
+    return {"产品"} | {f"款式{i}{suffix}" for i in range(1, n + 1) for suffix in ["", *ITEM_FIELDS]}
 
 
 def map_strings(value, fn):
@@ -151,13 +155,15 @@ def slide_items(slide, row):
 
 
 def product_values(tpl, row, shown):
-    """{{产品}} = 共用描述 + 这张画面出现的各款描述；{{款式N}}、{{款式N英文}} = 本套第 N 个款位的款名。"""
+    """{{产品}} = 共用描述 + 这张画面出现的各款描述；{{款式N}} = 本套第 N 个款位的款名，
+    {{款式N英文}}、{{款式Nemoji}}、{{款式Nemoji说明}} = 这一款的 en、emoji、emoji_desc。"""
     vals = {"产品": tpl["product_pool"]["common_description"] + "".join(p["description"] for p in shown)}
     for i in range(1, product_slots(tpl) + 1):
         p = row[(i - 1) % len(row)]
         vals[f"款式{i}"] = p["name"]
-        if "en" in p:
-            vals[f"款式{i}英文"] = p["en"]
+        for suffix, (key, _) in ITEM_FIELDS.items():
+            if key in p:
+                vals[f"款式{i}{suffix}"] = p[key]
     return vals
 
 
@@ -439,13 +445,15 @@ def validate(tpl, tpl_dir):
             errors.append("product_pool.common_description 不能为空")
         names, files = set(), set()
         body = json.dumps(tpl["slides"], ensure_ascii=False)
-        need_en = sorted({m for m in sp.PH.findall(body) if re.fullmatch(r"款式\d+英文", m.strip())})
+        need = {suffix: sorted({m.strip() for m in sp.PH.findall(body) if re.fullmatch(rf"款式\d+{suffix}", m.strip())})
+                for suffix in ITEM_FIELDS}
         for p in items:
             name, ref, desc = p.get("name"), p.get("ref"), p.get("description")
-            if "en" in p and (not isinstance(p["en"], str) or not p["en"].strip() or sp.PH.search(p["en"])):
-                errors.append(f"款式 {name} 的 en 要写成非空的英文款名，不含占位符")
-            elif need_en and "en" not in p:
-                errors.append(f"款式 {name} 缺少 en：画面里用到了 {'、'.join(need_en)}，每款都要写英文款名")
+            for suffix, (key, label) in ITEM_FIELDS.items():
+                if key in p and (not isinstance(p[key], str) or not p[key].strip() or sp.PH.search(p[key])):
+                    errors.append(f"款式 {name} 的 {key} 要写成非空的{label}，不含占位符")
+                elif need[suffix] and key not in p:
+                    errors.append(f"款式 {name} 缺少 {key}：画面里用到了 {'、'.join(need[suffix])}，每款都要写{label}")
             if not isinstance(name, str) or not name.strip() or name in names:
                 errors.append(f"款名为空或重复：{name}")
             names.add(name)
