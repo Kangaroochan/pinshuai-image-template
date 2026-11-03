@@ -13,6 +13,8 @@
 | `圣诞珍珠画03` | 自己做的挂饰挂在圣诞树上六张轮播：1 封面 "pearl ornaments i've made!!!"、2～5 一款一张（最爱款、单款特写、拿在手里、另一款）、6 结尾 "what else should i make!!!!"；产品不固定，每次用上传的产品图建款式池，每套 4 款、款位轮换 |
 | `圣诞珍珠画04` | 同一枚挂饰从空白底板到做好的三张手作教程轮播：1 第一步 "How to make pearl ornaments, step by step!"、2 贴珠中 "I'm making the ___ one."、3 做好了 "And voilà! Look how cute!"；产品不固定，每次用上传的产品图建款式池，每套 1 款 |
 | `圣诞珍珠画05` | 做珠钻画前后对比两张轮播：1 乱摊子 "The mess:"（一桌材料和工具，没有产品）、2 成品 "The result:" 加这一款的 emoji；产品不固定，每次用上传的产品图建款式池，每套 1 款，emoji 跟着款式变 |
+| `圣诞珍珠画06` | 挂饰拿在腿上给镜头看的四张轮播：1 封面 "pearl ornaments I made this weekend >>>"、2 第一枚、3 更顺手、4 最爱 "I'm obsessed."；产品不固定，每次用上传的产品图建款式池，每套 3 款、款位轮换 |
+| `圣诞珍珠画07` | 下雪街头开场到挂起来的四张轮播：1 下雪开场 "PARENTSSSS make sure to grab…"（没有产品）、2 贴珠中 "…so relaxing. 🥹✨🎄"、3 做好了 "…cuter than I expected." 加这一款的 emoji、4 挂起来 "Made these myself…" + "see today’s price ⬇️"；产品不固定，每次用上传的产品图建款式池，每套 4 款、款位轮换，emoji 跟着款式变 |
 
 每个模板文件夹里有 `carousel.json`、`参考图/`、`产品图/`、`说明.md`（模板专属规则）和 `lessons.md`（这个模板的出图经验）。
 
